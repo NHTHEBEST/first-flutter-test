@@ -30,13 +30,18 @@ class MyApp extends StatelessWidget {
 
 class TimerScreen extends StatefulWidget {
   // get timer on create
+  const TimerScreen({Key? key, required this.timer}) : super(key: key);
+  final TimerSave timer;
   @override
-  State<TimerScreen> createState() => _TimerScreenState();
+  State<TimerScreen> createState() => _TimerScreenState(timer: timer);
 
 }
 
 class _TimerScreenState extends State<TimerScreen> {
-  final Stopwatch _stopwatch = Stopwatch();
+  late Stopwatch _stopwatch = timer.stopwatch;
+
+  final TimerSave timer;
+  _TimerScreenState({required this.timer});
 
   late Timer _timer;
   final fieldText = TextEditingController();
@@ -50,7 +55,7 @@ class _TimerScreenState extends State<TimerScreen> {
       setState(() {
         // result in hh:mm:ss format
         _result =
-            '${_stopwatch.elapsed.inMinutes.toString().padLeft(2, '0')}:${(_stopwatch.elapsed.inSeconds % 60).toString().padLeft(2, '0')}:${(_stopwatch.elapsed.inMilliseconds % 100).toString().padLeft(2, '0')}';
+            '${_stopwatch.elapsed.inHours.toString().padLeft(2, '0')}:${(_stopwatch.elapsed.inMinutes % 60).toString().padLeft(2, '0')}:${(_stopwatch.elapsed.inSeconds % 100).toString().padLeft(2, '0')}';
       });
     });
     // Start the stopwatch
@@ -70,6 +75,7 @@ _result='00:00:00';
 
   @override
   Widget build(BuildContext context) {
+    _start();
     return Scaffold(
       appBar: AppBar(
         title: const Text('Timer'),
@@ -78,6 +84,10 @@ _result='00:00:00';
         child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          // timer name
+          Text(timer.toString(), style: const TextStyle(fontSize: 60)),
+          // spacer
+          const SizedBox(height: 100.0,),
           Text(_result, style: const TextStyle(fontSize: 60)),
           const SizedBox(height: 20.0,),
           Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -106,9 +116,28 @@ _result='00:00:00';
               },
               controller: fieldText,
             ),
+            // submit button for text field
+            ElevatedButton(onPressed: () async {
+              setState(() {
+                lastlog = fieldText.text;
+                // clear text
+                fieldText.clear();
+              });
+            }, child: const Text('Submit'),),
+            //spacer
+            const SizedBox(height: 200.0,),
+            // send log button
+            ElevatedButton(onPressed: () async {
+              // send log to server
+              // clear lastlog
+              setState(() {
+                lastlog = "";
+              });
+            }, child: const Text('Send Log'),),
             ],
             ),)
     );
+
   }
 }
 
@@ -147,7 +176,7 @@ class _TimerListScreen extends State<TimerListScreen>{
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => TimerScreen(),
+                      builder: (context) => TimerScreen(timer: timers[index]),
                     ),
                   );
                 },
@@ -176,9 +205,9 @@ class _TimerListScreen extends State<TimerListScreen>{
           //add item to list
           // get last timer
           try{
-            addTimer(TimerSave(id: timers.last.id+1  , name: 'timer', time: 0, runing: false));
+            addTimer(TimerSave(id: timers.last.id+1  , name: 'timer', time: 0, runing: false, stopwatch: Stopwatch()));
           }catch(e){
-            addTimer(const TimerSave(id: 0  , name: 'timer', time: 0, runing: false));
+            addTimer(TimerSave(id: 0  , name: 'timer', time: 0, runing: false, stopwatch: Stopwatch()));
           } 
         },
         child: const Icon(Icons.add),
@@ -192,12 +221,14 @@ class TimerSave {
   final String name;
   final int time; // can be last time if runing or current not time if runing
   final bool runing;
+  final Stopwatch stopwatch;
 
   const TimerSave({
     required this.id,
     required this.name,
     required this.time,
     required this.runing,
+    required this.stopwatch,
   });
   Map<String, dynamic> toMap() {
     return {
@@ -209,6 +240,6 @@ class TimerSave {
   }
   @override
   String toString() {
-    return 'TimerSave{id: $id, name: $name, time: $time, runing: $runing}';
+    return 'TimerSave{id: $id, name: $name, time: $time, runing: $runing, stopwatch: $stopwatch)}';
   }
 }
