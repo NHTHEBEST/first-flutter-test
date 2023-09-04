@@ -39,8 +39,10 @@ class _TimerScreenState extends State<TimerScreen> {
   final Stopwatch _stopwatch = Stopwatch();
 
   late Timer _timer;
+  final fieldText = TextEditingController();
 
   String _result = '00:00:00';
+  String lastlog = "";
 
   void _start(){
     _timer = Timer.periodic(const Duration(milliseconds: 30), (Timer t) {
@@ -84,6 +86,26 @@ _result='00:00:00';
               ElevatedButton(onPressed: _stop, style: ElevatedButton.styleFrom(backgroundColor: Colors.red), child: const Text('Stop'),), // red
               ElevatedButton(onPressed: _reset, style: ElevatedButton.styleFrom(backgroundColor: Colors.green),  child: const Text('Reset')), // green
             ],),
+            // some spaceing 
+            const SizedBox(height: 60.0,),
+            Text(lastlog),
+            const SizedBox(height: 20.0,),
+            TextField(
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                //on submit set lastlog to text
+
+              ),
+              // on submit set lastlog to text
+              onSubmitted: (String value) async {
+                setState(() {
+                  lastlog = value;
+                  // clear text
+                  fieldText.clear();
+                });
+              },
+              controller: fieldText,
+            ),
             ],
             ),)
     );
