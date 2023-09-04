@@ -132,7 +132,7 @@ class _TimerListScreen extends State<TimerListScreen>{
                 // on long press delete timer
                 onLongPress: () async {
                   if (await confirm(
-                    context,
+                    context, 
                     title: const Text('Delete Timer?'),
                     content: const Text('This will delete the timer'),
                     textOK: const Text('Yes'),
