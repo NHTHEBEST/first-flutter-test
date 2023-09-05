@@ -49,6 +49,7 @@ class _TimerScreenState extends State<TimerScreen> {
   String lastlog = "";
 
   void _start(){
+    
     _timer = Timer.periodic(const Duration(milliseconds: 30), (Timer t) {
       // Update the UI
       try{
@@ -124,8 +125,15 @@ void initState() {
             ),
             // submit button for text field
             ElevatedButton(onPressed: () async {
+              try{
+              timer.logs.add(LOG(text: fieldText.text, time: DateTime.now().millisecondsSinceEpoch));
+              }
+              catch(e){
+                timer.logs = [LOG(text: fieldText.text, time: DateTime.now().millisecondsSinceEpoch)];
+              }
               setState(() {
                 lastlog = fieldText.text;
+                
                 // clear text
                 fieldText.clear();
               });
@@ -316,6 +324,12 @@ void initState() {
   }
 }
 
+class LOG{
+  String text;
+  int time;
+  LOG({required this.text, required this.time});
+}
+
 class TimerSave {
  
    int id;
@@ -323,6 +337,7 @@ class TimerSave {
    int runningtime;
    int lasttime;
    bool runing;
+   List<LOG> logs;
 
    TimerSave({
     required this.id,
@@ -330,6 +345,7 @@ class TimerSave {
     required this.runningtime,
     required this.lasttime,
     required this.runing,
+    this.logs = const[],
   });
 
   Map<String, dynamic> toMap() {
