@@ -76,13 +76,7 @@ class _TimerScreenState extends State<TimerScreen> {
     // Update the UI
     
   }
-void _stop() {
-  timer.runing = false;
-    // Update the UI
-    timer.runningtime += DateTime.now().millisecondsSinceEpoch - timer.lasttime;
-    
 
-  }
 
 @override
 void initState() {
@@ -102,16 +96,12 @@ void initState() {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           // timer name
-          Text(timer.toString(), style: const TextStyle(fontSize: 60)),
+          Text(timer.name, style: const TextStyle(fontSize: 60)),
           // spacer
           const SizedBox(height: 100.0,),
           Text(_result, style: const TextStyle(fontSize: 60)),
           const SizedBox(height: 20.0,),
-          Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              ElevatedButton(onPressed: _start, style: ElevatedButton.styleFrom(backgroundColor: Colors.blue), child: const Text('Start'),),
-              ElevatedButton(onPressed: _stop, style: ElevatedButton.styleFrom(backgroundColor: Colors.red), child: const Text('Stop'),), // red
-            ],),
+          
             // some spaceing 
             const SizedBox(height: 60.0,),
             Text(lastlog),
@@ -169,10 +159,18 @@ class _TimerListScreen extends State<TimerListScreen>{
 late Timer _timer;
   final List<TimerSave> timers = [];
   int running = 0;
+  bool editing = false;
   void addTimer(TimerSave timer) {
     setState(() {
       timers.add(timer);
     });
+  }
+  void stoppall()
+  {
+    // stop all timers
+    for (var i = 0; i < timers.length; i++) {
+      timers[i].runing = false;
+    }
   }
 
 @override
@@ -202,10 +200,43 @@ void initState() {
             itemCount: timers.length,
             itemBuilder: (BuildContext context, int index) {
               return ListTile(
-                title: Text(timers[index].toString()),
-                subtitle: Text(timers[index].lasttime.toString()),
+                title: Text(style: (){if (editing ){ return const TextStyle(fontStyle: FontStyle.italic); }}(),timers[index].name),
+                subtitle: Text(Duration(milliseconds: timers[index].runningtime).toString().split('.').first.padLeft(8, "0")),
+                selected: timers[index].runing,
+                // if editing make italic
+                
                 // on tap onpen timer screen
                 onTap: () {
+                  if (editing)
+                  {
+                    // name change popup
+                    showDialog(
+                      context: context,
+                      builder: (BuildContext context) => AlertDialog(
+                        title: const Text('Change Name'),
+                        content: TextField(
+                          decoration: const InputDecoration(
+                            border: OutlineInputBorder(),
+                          ),
+                          // on submit set lastlog to text
+                          onSubmitted: (String value) async {
+                            setState(() {
+                              timers[index].name = value;
+                            });
+                          },
+                          controller: TextEditingController(text: timers[index].name),
+                        ),
+                        actions: <Widget>[
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, 'OK'),
+                            child: const Text('OK'),
+                          ),
+                        ],
+                      ),
+                    );
+                    
+                    return;
+                  }
                   // stop all timers
                   for (var i = 0; i < timers.length; i++) {
                     timers[i].runing = false;
@@ -255,16 +286,28 @@ void initState() {
             },
           ),
         ),
-        
-      ],),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            ElevatedButton(onPressed: stoppall, 
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              child: const Text("Stop timers"),
+            ),
+          // edit button
+            ElevatedButton(onPressed: (){editing= !editing;}, child: (){if (editing) {return const Text("Done");} else {return const Text("Edit");}}()),
+          
+          ],
+        )
+      ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           //add item to list
           // get last timer
           try{
-            addTimer(TimerSave(id: timers.last.id + 1  , name: 'timer', runningtime: 0, runing: false, lasttime: 0));
+            addTimer(TimerSave(id: timers.last.id + 1  , name: 'timer '+(timers.last.id+2).toString(), runningtime: 0, runing: false, lasttime: 0));
           }catch(e){
-            addTimer(TimerSave(id: 0  , name: 'timer', runningtime: 0, runing: false, lasttime: 0));
+            addTimer(TimerSave(id: 0  , name: 'timer 1', runningtime: 0, runing: false, lasttime: 0));
           } 
         },
         child: const Icon(Icons.add),
