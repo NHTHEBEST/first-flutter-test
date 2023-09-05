@@ -38,9 +38,8 @@ class TimerScreen extends StatefulWidget {
 }
 
 class _TimerScreenState extends State<TimerScreen> {
-  late Stopwatch _stopwatch = timer.stopwatch;
 
-  final TimerSave timer;
+    TimerSave timer;
   _TimerScreenState({required this.timer});
 
   late Timer _timer;
@@ -52,30 +51,48 @@ class _TimerScreenState extends State<TimerScreen> {
   void _start(){
     _timer = Timer.periodic(const Duration(milliseconds: 30), (Timer t) {
       // Update the UI
+      try{
       setState(() {
-        // result in hh:mm:ss format
-        _result =
-            '${_stopwatch.elapsed.inHours.toString().padLeft(2, '0')}:${(_stopwatch.elapsed.inMinutes % 60).toString().padLeft(2, '0')}:${(_stopwatch.elapsed.inSeconds % 100).toString().padLeft(2, '0')}';
-      });
+        // get time now
+        int now = DateTime.now().millisecondsSinceEpoch;
+        // get time since last update
+        int time = now - timer.lasttime;
+        // add time to running time
+        if(timer.runing){
+        timer.runningtime += time;
+        // set last time to now
+        timer.lasttime = now;
+        // convert time to string
+        _result = Duration(milliseconds: timer.runningtime).toString().split('.').first.padLeft(8, "0");}
+        
+    });}catch(e){
+      // do nothing}
+    }
     });
     // Start the stopwatch
-    _stopwatch.start();
+   timer.runing = true;
+   // set timer.lasttime to now
+    timer.lasttime = DateTime.now().millisecondsSinceEpoch;
+    // Update the UI
+    
   }
 void _stop() {
-    _timer.cancel();
-    _stopwatch.stop();
-  }
- void _reset() {
-    _stop();
-    _stopwatch.reset();
-_result='00:00:00';
+  timer.runing = false;
     // Update the UI
-    setState(() {});
+    timer.runningtime += DateTime.now().millisecondsSinceEpoch - timer.lasttime;
+    
+
   }
+
+@override
+void initState() {
+  _start();
+  super.initState();
+}
 
   @override
   Widget build(BuildContext context) {
-    _start();
+   // _start();
     return Scaffold(
       appBar: AppBar(
         title: const Text('Timer'),
@@ -94,7 +111,6 @@ _result='00:00:00';
             children: [
               ElevatedButton(onPressed: _start, style: ElevatedButton.styleFrom(backgroundColor: Colors.blue), child: const Text('Start'),),
               ElevatedButton(onPressed: _stop, style: ElevatedButton.styleFrom(backgroundColor: Colors.red), child: const Text('Stop'),), // red
-              ElevatedButton(onPressed: _reset, style: ElevatedButton.styleFrom(backgroundColor: Colors.green),  child: const Text('Reset')), // green
             ],),
             // some spaceing 
             const SizedBox(height: 60.0,),
@@ -150,13 +166,30 @@ class TimerListScreen extends StatefulWidget{
 }
 
 class _TimerListScreen extends State<TimerListScreen>{
-
+late Timer _timer;
   final List<TimerSave> timers = [];
+  int running = 0;
   void addTimer(TimerSave timer) {
     setState(() {
       timers.add(timer);
     });
   }
+
+@override
+void initState() {
+  super.initState();
+  _timer = Timer.periodic(const Duration(milliseconds: 30), (Timer t) {
+    setState(() {
+      for (var i = 0; i < timers.length; i++) {
+        if(timers[i].runing){
+          timers[i].runningtime += DateTime.now().millisecondsSinceEpoch - timers[i].lasttime;
+          timers[i].lasttime = DateTime.now().millisecondsSinceEpoch;
+        }
+      }
+    });
+  });
+}
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -170,9 +203,15 @@ class _TimerListScreen extends State<TimerListScreen>{
             itemBuilder: (BuildContext context, int index) {
               return ListTile(
                 title: Text(timers[index].toString()),
-                subtitle: Text(timers[index].time.toString()),
+                subtitle: Text(timers[index].lasttime.toString()),
                 // on tap onpen timer screen
                 onTap: () {
+                  // stop all timers
+                  for (var i = 0; i < timers.length; i++) {
+                    timers[i].runing = false;
+                  }
+                  // start selected timer
+                  timers[index].runing = true;
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -182,6 +221,24 @@ class _TimerListScreen extends State<TimerListScreen>{
                 },
                 // on long press delete timer
                 onLongPress: () async {
+                  // check if timer running 
+                  if(timers[index].runing){
+                    // popup
+                    await showDialog(
+                      context: context,
+                      builder: (BuildContext context) => AlertDialog(
+                        title: const Text('Timer Running'),
+                        content: const Text('Please stop timer before deleting'),
+                        actions: <Widget>[
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, 'OK'),
+                            child: const Text('OK'),
+                          ),
+                        ],
+                      ),
+                    );
+                    return;
+                  }
                   if (await confirm(
                     context, 
                     title: const Text('Delete Timer?'),
@@ -205,9 +262,9 @@ class _TimerListScreen extends State<TimerListScreen>{
           //add item to list
           // get last timer
           try{
-            addTimer(TimerSave(id: timers.last.id+1  , name: 'timer', time: 0, runing: false, stopwatch: Stopwatch()));
+            addTimer(TimerSave(id: timers.last.id + 1  , name: 'timer', runningtime: 0, runing: false, lasttime: 0));
           }catch(e){
-            addTimer(TimerSave(id: 0  , name: 'timer', time: 0, runing: false, stopwatch: Stopwatch()));
+            addTimer(TimerSave(id: 0  , name: 'timer', runningtime: 0, runing: false, lasttime: 0));
           } 
         },
         child: const Icon(Icons.add),
@@ -217,29 +274,34 @@ class _TimerListScreen extends State<TimerListScreen>{
 }
 
 class TimerSave {
-  final int id;
-  final String name;
-  final int time; // can be last time if runing or current not time if runing
-  final bool runing;
-  final Stopwatch stopwatch;
+ 
+   int id;
+   String name;
+   int runningtime;
+   int lasttime;
+   bool runing;
 
-  const TimerSave({
+   TimerSave({
     required this.id,
     required this.name,
-    required this.time,
+    required this.runningtime,
+    required this.lasttime,
     required this.runing,
-    required this.stopwatch,
   });
+
   Map<String, dynamic> toMap() {
     return {
       'id': id,
       'name': name,
-      'time': time,
+      'runningtime': runningtime,
+      'lasttime': lasttime,
       'runing': runing,
     };
   }
+
   @override
   String toString() {
-    return 'TimerSave{id: $id, name: $name, time: $time, runing: $runing, stopwatch: $stopwatch)}';
+    return 'TimerType{id: $id, name: $name, runningtime: $runningtime, lasttime: $lasttime, runing: $runing}';
   }
+  
 }
